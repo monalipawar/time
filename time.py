@@ -2,13 +2,14 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="Current Time",
+    page_title="Auto Location Clock",
     page_icon="🕐",
     layout="centered"
 )
 
 components.html(
     """
+    <!DOCTYPE html>
     <html>
     <head>
         <style>
@@ -66,6 +67,11 @@ components.html(
                 color: #64748b;
                 margin-top: 25px;
             }
+
+            .detecting {
+                color: #94a3b8;
+                font-size: 16px;
+            }
         </style>
     </head>
 
@@ -73,8 +79,8 @@ components.html(
 
         <div class="clock-container">
 
-            <div class="location">
-                📍 Princeton Junction, New Jersey
+            <div class="location" id="location">
+                📍 Detecting location...
             </div>
 
             <div class="time" id="time">
@@ -86,48 +92,131 @@ components.html(
             </div>
 
             <div class="day" id="day">
-                Wednesday
+                Monday
             </div>
 
             <div class="date" id="date">
-                August 19, 2026
+                January 1, 2026
             </div>
 
             <div class="timezone" id="timezone">
-                Eastern Time
+                Detecting time zone...
             </div>
 
         </div>
 
         <script>
+
+            // Get the user's time zone automatically
+            const timeZone =
+                Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+
+            // Convert time zone into a friendly location name
+            function getLocationName(zone) {
+
+                const locations = {
+
+                    "America/New_York":
+                        "📍 Eastern United States",
+
+                    "America/Chicago":
+                        "📍 Central United States",
+
+                    "America/Denver":
+                        "📍 Mountain United States",
+
+                    "America/Los_Angeles":
+                        "📍 Pacific United States",
+
+                    "America/Anchorage":
+                        "📍 Alaska",
+
+                    "Pacific/Honolulu":
+                        "📍 Hawaii",
+
+                    "Asia/Kolkata":
+                        "📍 India",
+
+                    "Asia/Calcutta":
+                        "📍 India",
+
+                    "Europe/London":
+                        "📍 United Kingdom",
+
+                    "Europe/Paris":
+                        "📍 France / Central Europe",
+
+                    "Europe/Berlin":
+                        "📍 Germany / Central Europe",
+
+                    "Asia/Tokyo":
+                        "📍 Japan",
+
+                    "Asia/Shanghai":
+                        "📍 China",
+
+                    "Asia/Singapore":
+                        "📍 Singapore",
+
+                    "Australia/Sydney":
+                        "📍 Sydney, Australia",
+
+                    "America/Toronto":
+                        "📍 Toronto, Canada",
+
+                    "America/Vancouver":
+                        "📍 Vancouver, Canada"
+
+                };
+
+                return locations[zone] || "📍 " + zone;
+            }
+
+
             function updateClock() {
 
                 const now = new Date();
 
-                const options = {
-                    timeZone: "America/New_York",
+
+                // Time
+                const timeOptions = {
+                    timeZone: timeZone,
                     hour: "2-digit",
                     minute: "2-digit",
                     second: "2-digit",
                     hour12: true
                 };
 
-                const timeParts = new Intl.DateTimeFormat(
-                    "en-US",
-                    options
-                ).formatToParts(now);
+                const timeParts =
+                    new Intl.DateTimeFormat(
+                        "en-US",
+                        timeOptions
+                    ).formatToParts(now);
+
 
                 let hour = "";
                 let minute = "";
                 let second = "";
                 let dayPeriod = "";
 
+
                 timeParts.forEach(part => {
-                    if (part.type === "hour") hour = part.value;
-                    if (part.type === "minute") minute = part.value;
-                    if (part.type === "second") second = part.value;
-                    if (part.type === "dayPeriod") dayPeriod = part.value;
+
+                    if (part.type === "hour")
+                        hour = part.value;
+
+                    if (part.type === "minute")
+                        minute = part.value;
+
+                    if (part.type === "second")
+                        second = part.value;
+
+                    if (part.type === "dayPeriod")
+                        dayPeriod = part.value;
+
                 });
+
 
                 document.getElementById("time").textContent =
                     `${hour}:${minute}:${second}`;
@@ -136,9 +225,22 @@ components.html(
                     dayPeriod;
 
 
+                // Day
+                const dayOptions = {
+                    timeZone: timeZone,
+                    weekday: "long"
+                };
+
+                document.getElementById("day").textContent =
+                    new Intl.DateTimeFormat(
+                        "en-US",
+                        dayOptions
+                    ).format(now);
+
+
+                // Date
                 const dateOptions = {
-                    timeZone: "America/New_York",
-                    weekday: "long",
+                    timeZone: timeZone,
                     month: "long",
                     day: "numeric",
                     year: "numeric"
@@ -151,46 +253,49 @@ components.html(
                     ).format(now);
 
 
-                const dayOptions = {
-                    timeZone: "America/New_York",
-                    weekday: "long"
+                // Time zone
+                const zoneOptions = {
+                    timeZone: timeZone,
+                    timeZoneName: "long"
                 };
 
-                document.getElementById("day").textContent =
+                const zoneParts =
                     new Intl.DateTimeFormat(
                         "en-US",
-                        dayOptions
-                    ).format(now);
-
-
-                const timezoneOptions = {
-                    timeZone: "America/New_York",
-                    timeZoneName: "short"
-                };
-
-                const timezoneParts =
-                    new Intl.DateTimeFormat(
-                        "en-US",
-                        timezoneOptions
+                        zoneOptions
                     ).formatToParts(now);
 
-                const timezoneName =
-                    timezoneParts.find(
+                const zoneName =
+                    zoneParts.find(
                         part => part.type === "timeZoneName"
                     );
 
+
                 document.getElementById("timezone").textContent =
-                    "Eastern Time — " +
-                    (timezoneName ? timezoneName.value : "ET");
+                    (zoneName
+                        ? zoneName.value
+                        : timeZone)
+                    + " • " + timeZone;
+
+
+                // Location
+                document.getElementById("location").textContent =
+                    getLocationName(timeZone);
+
             }
 
+
+            // Run immediately
             updateClock();
 
+
+            // Update every second
             setInterval(updateClock, 1000);
+
         </script>
 
     </body>
     </html>
     """,
-    height=500,
+    height=500
 )
